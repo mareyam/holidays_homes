@@ -22,11 +22,6 @@ export default function SidebarFilters() {
     const [adults, setAdults] = useState(0)
     const [children, setChildren] = useState(0)
     const [rooms, setRooms] = useState(0)
-    // const [date, setDate] = useState({
-    //     from: new Date(),
-    //     to: new Date(),
-    // })
-
     const [date, setDate] = useState({
         from: undefined,
         to: undefined,
@@ -34,6 +29,11 @@ export default function SidebarFilters() {
 
 
     const [reservationTypes, setReservationTypes] = useState([])
+    const [selectedReservationTypes, setSelectedReservationTypes] = useState([])
+
+
+
+
     const [paymentType, setPaymentType] = useState('')
     const [refundType, setRefundType] = useState('')
 
@@ -47,56 +47,62 @@ export default function SidebarFilters() {
     }
 
     useEffect(() => {
-        const timeout = setTimeout(() => {
-            const fetchHotels = async () => {
-                const { data, error } = await supabase.from('Hotel Details').select()
-                if (error) {
-                    console.error('Error:', error)
-                    return
-                }
+        const fetchHotels = async () => {
+            const { data, error } = await supabase.from('Hotel Details').select()
+            if (error) {
+                console.error('Error:', error)
+                return
+            }
 
-                const filtered = data.filter((hotel) => {
-                    const price = extractNumericValue(hotel.Price)
-                    const total = extractNumericValue(hotel['Total Price'])
-                    const name = hotel['Hotel Name']?.toLowerCase() || ''
-                    const dest = hotel['Destination']?.toLowerCase() || ''
-                    const reserve = hotel['Reserve Type']?.toLowerCase() || ''
-                    const payment = hotel['Payment Type']?.toLowerCase() || ''
-                    const refund = hotel['Refund Type']?.toLowerCase() || ''
+            const filtered = data.filter((hotel) => {
+                const price = extractNumericValue(hotel.Price)
+                const total = extractNumericValue(hotel['Total Price'])
+                const name = hotel['Hotel Name']?.toLowerCase() || ''
+                const dest = hotel['Destination']?.toLowerCase() || ''
+                const reserve = hotel['Reserve Type']?.toLowerCase() || ''
+                const payment = hotel['Payment Type']?.toLowerCase() || ''
+                const refund = hotel['Refund Type']?.toLowerCase() || ''
 
-                    const isDateInRange =
-                        hotel['Date'] &&
-                        date?.from &&
-                        date?.to &&
-                        (() => {
-                            const [startStr, endStr] = hotel['Date'].split(' - ')
-                            const start = new Date(startStr)
-                            const end = new Date(endStr)
-                            return date.from <= end && date.to >= start
-                        })()
+                const isDateInRange =
+                    hotel['Date'] &&
+                    date?.from &&
+                    date?.to &&
+                    (() => {
+                        const [startStr, endStr] = hotel['Date'].split(' - ')
+                        const start = new Date(startStr)
+                        const end = new Date(endStr)
+                        return date.from <= end && date.to >= start
+                    })()
 
-                    return (
-                        price >= priceRange[0] &&
+                return (
+                    price >= priceRange[0] &&
                         price <= priceRange[1] &&
                         total >= totalPrice[0] &&
                         total <= totalPrice[1] &&
                         name.includes(hotelName.toLowerCase()) &&
                         dest.includes(location.toLowerCase()) &&
                         dest.includes(destination.toLowerCase()) &&
-                        (reservationTypes.length > 0 ? reservationTypes.includes(hotel['Reserve Type']) : true) &&
+                        // (reservationTypes.length > 0 ? reservationTypes.includes(hotel['Reserve Type']) : true) &&
+                        selectedReservationTypes.length > 0
+                        ? selectedReservationTypes.includes(hotel['Reserve Type'])
+                        : true
+                        &&
                         (paymentType ? payment.includes(paymentType.toLowerCase()) : true) &&
                         (refundType ? refund.includes(refundType.toLowerCase()) : true) &&
                         (!hotel['Date'] || !date?.from || !date?.to || isDateInRange)
-                    )
-                })
+                )
+            })
 
-                console.log("filtered is", filtered)
-                setHotels(filtered)
-            }
+            const allTypes = Array.from(
+                new Set(data.map(hotel => hotel['Reserve Type']).filter(Boolean))
+            )
+            setReservationTypes(allTypes)
 
-            fetchHotels()
-        }, 2000)
+            console.log("filtered is", filtered)
+            setHotels(filtered)
+        }
 
+        fetchHotels()
         return () => clearTimeout(timeout)
     }, [priceRange, totalPrice, hotelName, location, reservationTypes, paymentType, refundType, destination, date])
 
@@ -179,7 +185,7 @@ export default function SidebarFilters() {
                         <div>
                             <Label>Reservation Type</Label>
                             <div className="space-y-1 mt-2">
-                                {[
+                                {/* {[
                                     "Accor - HERA",
                                     "Accor Preferred",
                                     "Enhanced Rates",
@@ -206,6 +212,22 @@ export default function SidebarFilters() {
                                                 setReservationTypes([...reservationTypes, label])
                                             } else {
                                                 setReservationTypes(reservationTypes.filter((r) => r !== label))
+                                            }
+                                        }}
+                                    />
+                                ))} */}
+                                {reservationTypes.map(label => (
+                                    <CheckboxWithLabel
+                                        key={label}
+                                        label={label}
+                                        checked={selectedReservationTypes.includes(label)}
+                                        onChange={checked => {
+                                            if (checked) {
+                                                setSelectedReservationTypes([...selectedReservationTypes, label])
+                                            } else {
+                                                setSelectedReservationTypes(
+                                                    selectedReservationTypes.filter(item => item !== label)
+                                                )
                                             }
                                         }}
                                     />
