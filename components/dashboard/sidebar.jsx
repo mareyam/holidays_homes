@@ -47,6 +47,7 @@ export default function SidebarFilters() {
     }
 
     useEffect(() => {
+        console.log("fetchHotels")
         const fetchHotels = async () => {
             const { data, error } = await supabase.from('Hotel Details').select()
             if (error) {
@@ -96,14 +97,16 @@ export default function SidebarFilters() {
             const allTypes = Array.from(
                 new Set(data.map(hotel => hotel['Reserve Type']).filter(Boolean))
             )
-            setReservationTypes(allTypes)
+            if (JSON.stringify(allTypes) !== JSON.stringify(reservationTypes)) {
+                setReservationTypes(allTypes)
+            }
 
             console.log("filtered is", filtered)
             setHotels(filtered)
         }
 
         fetchHotels()
-    }, [priceRange, totalPrice, hotelName, location, reservationTypes, paymentType, refundType, destination, date])
+    }, [priceRange, totalPrice, hotelName, location, paymentType, refundType, destination, date, reservationTypes, selectedReservationTypes])
 
     return (
         <div className="h-[100dvh] flex bg-gray-50 overflow-hidden">
