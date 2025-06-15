@@ -35,6 +35,7 @@ export default function SearchBar({
                         Destination
                     </label>
                     <Input
+                        placeholder="Select Destination"
                         value={destination}
                         onChange={(e) => setDestination(e.target.value)}
                         className="border-0 p-0 h-6 text-sm font-medium"

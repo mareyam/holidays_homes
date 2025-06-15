@@ -22,10 +22,16 @@ export default function SidebarFilters() {
     const [adults, setAdults] = useState(0)
     const [children, setChildren] = useState(0)
     const [rooms, setRooms] = useState(0)
+    // const [date, setDate] = useState({
+    //     from: new Date(),
+    //     to: new Date(),
+    // })
+
     const [date, setDate] = useState({
-        from: new Date(),
-        to: new Date(),
+        from: undefined,
+        to: undefined,
     })
+
 
     const [reservationTypes, setReservationTypes] = useState([])
     const [paymentType, setPaymentType] = useState('')
@@ -41,41 +47,58 @@ export default function SidebarFilters() {
     }
 
     useEffect(() => {
-        const fetchHotels = async () => {
-            const { data, error } = await supabase.from('Hotel Details').select()
-            if (error) {
-                console.error('Error:', error)
-                return
+        const timeout = setTimeout(() => {
+            const fetchHotels = async () => {
+                const { data, error } = await supabase.from('Hotel Details').select()
+                if (error) {
+                    console.error('Error:', error)
+                    return
+                }
+
+                const filtered = data.filter((hotel) => {
+                    const price = extractNumericValue(hotel.Price)
+                    const total = extractNumericValue(hotel['Total Price'])
+                    const name = hotel['Hotel Name']?.toLowerCase() || ''
+                    const dest = hotel['Destination']?.toLowerCase() || ''
+                    const reserve = hotel['Reserve Type']?.toLowerCase() || ''
+                    const payment = hotel['Payment Type']?.toLowerCase() || ''
+                    const refund = hotel['Refund Type']?.toLowerCase() || ''
+
+                    const isDateInRange =
+                        hotel['Date'] &&
+                        date?.from &&
+                        date?.to &&
+                        (() => {
+                            const [startStr, endStr] = hotel['Date'].split(' - ')
+                            const start = new Date(startStr)
+                            const end = new Date(endStr)
+                            return date.from <= end && date.to >= start
+                        })()
+
+                    return (
+                        price >= priceRange[0] &&
+                        price <= priceRange[1] &&
+                        total >= totalPrice[0] &&
+                        total <= totalPrice[1] &&
+                        name.includes(hotelName.toLowerCase()) &&
+                        dest.includes(location.toLowerCase()) &&
+                        dest.includes(destination.toLowerCase()) &&
+                        (reservationTypes.length > 0 ? reservationTypes.includes(hotel['Reserve Type']) : true) &&
+                        (paymentType ? payment.includes(paymentType.toLowerCase()) : true) &&
+                        (refundType ? refund.includes(refundType.toLowerCase()) : true) &&
+                        (!hotel['Date'] || !date?.from || !date?.to || isDateInRange)
+                    )
+                })
+
+                console.log("filtered is", filtered)
+                setHotels(filtered)
             }
 
-            const filtered = data.filter((hotel) => {
-                const price = extractNumericValue(hotel.Price)
-                const total = extractNumericValue(hotel['Total Price'])
-                const name = hotel['Hotel Name']?.toLowerCase() || ''
-                const dest = hotel.Destination?.toLowerCase() || ''
-                const reserve = hotel['Reserve Type']?.toLowerCase() || ''
-                const payment = hotel['Payment Type']?.toLowerCase() || ''
-                const refund = hotel['Refund Type']?.toLowerCase() || ''
+            fetchHotels()
+        }, 2000)
 
-                return (
-                    price >= priceRange[0] &&
-                    price <= priceRange[1] &&
-                    total >= totalPrice[0] &&
-                    total <= totalPrice[1] &&
-                    name.includes(hotelName.toLowerCase()) &&
-                    dest.includes(location.toLowerCase()) &&
-                    (reservationTypes.length > 0 ? reservationTypes.includes(hotel['Reserve Type']) : true) &&
-                    (paymentType ? payment.includes(paymentType.toLowerCase()) : true) &&
-                    (refundType ? refund.includes(refundType.toLowerCase()) : true)
-                )
-            })
-
-            console.log("filtered is", filtered)
-            setHotels(filtered)
-        }
-
-        fetchHotels()
-    }, [priceRange, totalPrice, hotelName, location, reservationTypes, paymentType, refundType])
+        return () => clearTimeout(timeout)
+    }, [priceRange, totalPrice, hotelName, location, reservationTypes, paymentType, refundType, destination, date])
 
     return (
         <div className="h-[100dvh] flex bg-gray-50 overflow-hidden">
@@ -94,8 +117,13 @@ export default function SidebarFilters() {
                         setRefundType('')
                         setHotelName('')
                         setLocation('')
+                        setDestination('')
+                        setAdults(0)
+                        setChildren(0)
+                        setRooms(0)
                         setPriceRange([0, 100000])
                         setTotalPrice([0, 1000000])
+                        setDate({ from: undefined, to: undefined })
                     }}>
                         Clear Filters
                     </Button>
@@ -190,16 +218,24 @@ export default function SidebarFilters() {
                         <div>
                             <Label>Payment Type</Label>
                             <div className="space-y-1 mt-2">
+
                                 <CheckboxWithLabel
                                     label="Deposit Required"
                                     checked={paymentType === 'Deposit Required'}
-                                    onChange={() => setPaymentType('Deposit Required')}
+                                    onChange={() =>
+                                        setPaymentType(paymentType === 'Deposit Required' ? '' : 'Deposit Required')
+                                    }
                                 />
+
+
                                 <CheckboxWithLabel
                                     label="Pay Later"
                                     checked={paymentType === 'Pay Later'}
-                                    onChange={() => setPaymentType('Pay Later')}
+                                    onChange={() =>
+                                        setPaymentType(paymentType === 'Pay Later' ? '' : 'Pay Later')
+                                    }
                                 />
+
                             </div>
                         </div>
 
@@ -207,16 +243,23 @@ export default function SidebarFilters() {
                         <div>
                             <Label>Refund Type</Label>
                             <div className="space-y-1 mt-2">
+
                                 <CheckboxWithLabel
                                     label="Non-refundable"
                                     checked={refundType === 'Non-refundable'}
-                                    onChange={() => setRefundType('Non-refundable')}
+                                    onChange={() =>
+                                        setRefundType(refundType === 'Non-refundable' ? '' : 'Non-refundable')
+                                    }
                                 />
+
                                 <CheckboxWithLabel
                                     label="See details for cancellation policy"
                                     checked={refundType === 'See details for cancellation policy'}
-                                    onChange={() => setRefundType('See details for cancellation policy')}
+                                    onChange={() =>
+                                        setRefundType(refundType === 'See details for cancellation policy' ? '' : 'See details for cancellation policy')
+                                    }
                                 />
+
                             </div>
                         </div>
 
