@@ -13,6 +13,7 @@ import HotelCard from './card'
 import { supabase } from '@/lib/supabaseClient'
 
 export default function SidebarFilters() {
+    const [loading, setLoading] = useState(false)
     const [sidebarOpen, setSidebarOpen] = useState(true)
     const [priceRange, setPriceRange] = useState([0, 100000])
     const [totalPrice, setTotalPrice] = useState([0, 1000000])
@@ -30,10 +31,6 @@ export default function SidebarFilters() {
 
     const [reservationTypes, setReservationTypes] = useState([])
     const [selectedReservationTypes, setSelectedReservationTypes] = useState([])
-
-
-
-
     const [paymentType, setPaymentType] = useState('')
     const [refundType, setRefundType] = useState('')
 
@@ -48,10 +45,15 @@ export default function SidebarFilters() {
 
     useEffect(() => {
         console.log("fetchHotels")
+        setLoading(true)
         const fetchHotels = async () => {
+            console.log("fetchHotels")
+            setLoading(true)
+
             const { data, error } = await supabase.from('Hotel Details').select()
             if (error) {
                 console.error('Error:', error)
+                setLoading(false)
                 return
             }
 
@@ -77,20 +79,20 @@ export default function SidebarFilters() {
 
                 return (
                     price >= priceRange[0] &&
-                        price <= priceRange[1] &&
-                        total >= totalPrice[0] &&
-                        total <= totalPrice[1] &&
-                        name.includes(hotelName.toLowerCase()) &&
-                        dest.includes(location.toLowerCase()) &&
-                        dest.includes(destination.toLowerCase()) &&
-                        // (reservationTypes.length > 0 ? reservationTypes.includes(hotel['Reserve Type']) : true) &&
+                    price <= priceRange[1] &&
+                    total >= totalPrice[0] &&
+                    total <= totalPrice[1] &&
+                    name.includes(hotelName.toLowerCase()) &&
+                    dest.includes(location.toLowerCase()) &&
+                    dest.includes(destination.toLowerCase()) &&
+                    (
                         selectedReservationTypes.length > 0
-                        ? selectedReservationTypes.includes(hotel['Reserve Type'])
-                        : true
-                        &&
-                        (paymentType ? payment.includes(paymentType.toLowerCase()) : true) &&
-                        (refundType ? refund.includes(refundType.toLowerCase()) : true) &&
-                        (!hotel['Date'] || !date?.from || !date?.to || isDateInRange)
+                            ? selectedReservationTypes.includes(hotel['Reserve Type'])
+                            : true
+                    ) &&
+                    (paymentType ? payment.includes(paymentType.toLowerCase()) : true) &&
+                    (refundType ? refund.includes(refundType.toLowerCase()) : true) &&
+                    (!hotel['Date'] || !date?.from || !date?.to || isDateInRange)
                 )
             })
 
@@ -103,10 +105,74 @@ export default function SidebarFilters() {
 
             console.log("filtered is", filtered)
             setHotels(filtered)
+            setLoading(false)
         }
-
         fetchHotels()
+
     }, [priceRange, totalPrice, hotelName, location, paymentType, refundType, destination, date, reservationTypes, selectedReservationTypes])
+
+
+    // const fetchHotels = async () => {
+    //     const { data, error } = await supabase.from('Hotel Details').select()
+    //     if (error) {
+    //         console.error('Error:', error)
+    //         return
+    //     }
+
+    //     const filtered = data.filter((hotel) => {
+    //         const price = extractNumericValue(hotel.Price)
+    //         const total = extractNumericValue(hotel['Total Price'])
+    //         const name = hotel['Hotel Name']?.toLowerCase() || ''
+    //         const dest = hotel['Destination']?.toLowerCase() || ''
+    //         const reserve = hotel['Reserve Type']?.toLowerCase() || ''
+    //         const payment = hotel['Payment Type']?.toLowerCase() || ''
+    //         const refund = hotel['Refund Type']?.toLowerCase() || ''
+
+    //         const isDateInRange =
+    //             hotel['Date'] &&
+    //             date?.from &&
+    //             date?.to &&
+    //             (() => {
+    //                 const [startStr, endStr] = hotel['Date'].split(' - ')
+    //                 const start = new Date(startStr)
+    //                 const end = new Date(endStr)
+    //                 return date.from <= end && date.to >= start
+    //             })()
+
+    //         return (
+    //             price >= priceRange[0] &&
+    //                 price <= priceRange[1] &&
+    //                 total >= totalPrice[0] &&
+    //                 total <= totalPrice[1] &&
+    //                 name.includes(hotelName.toLowerCase()) &&
+    //                 dest.includes(location.toLowerCase()) &&
+    //                 dest.includes(destination.toLowerCase()) &&
+    //                 selectedReservationTypes.length > 0
+    //                 ? selectedReservationTypes.includes(hotel['Reserve Type'])
+    //                 : true
+    //                 &&
+    //                 (paymentType ? payment.includes(paymentType.toLowerCase()) : true) &&
+    //                 (refundType ? refund.includes(refundType.toLowerCase()) : true) &&
+    //                 (!hotel['Date'] || !date?.from || !date?.to || isDateInRange)
+
+
+
+    //         )
+    //     })
+
+    //     const allTypes = Array.from(
+    //         new Set(data.map(hotel => hotel['Reserve Type']).filter(Boolean))
+    //     )
+    //     if (JSON.stringify(allTypes) !== JSON.stringify(reservationTypes)) {
+    //         setReservationTypes(allTypes)
+    //     }
+    //     console.log("filtered is", filtered)
+    //     setHotels(filtered)
+    //     setLoading(false)
+
+    // }
+
+    // fetchHotels()
 
     return (
         <div className="h-[100dvh] flex bg-gray-50 overflow-hidden">
@@ -131,6 +197,7 @@ export default function SidebarFilters() {
                         setRooms(0)
                         setPriceRange([0, 100000])
                         setTotalPrice([0, 1000000])
+                        setSelectedReservationTypes([])
                         setDate({ from: undefined, to: undefined })
                     }}>
                         Clear Filters
@@ -187,53 +254,29 @@ export default function SidebarFilters() {
                         <div>
                             <Label>Reservation Type</Label>
                             <div className="space-y-1 mt-2">
-                                {/* {[
-                                    "Accor - HERA",
-                                    "Accor Preferred",
-                                    "Enhanced Rates",
-                                    "Expedia",
-                                    "Fora Reserve",
-                                    "Four Seasons Preferred",
-                                    "Hilton Honors Member Rates",
-                                    "Hyatt Privé",
-                                    "IHG One Member Rates",
-                                    "Marriott Bonvoy Member Rates",
-                                    "Marriott LUMINOUS",
-                                    "Marriott STARS",
-                                    "Preferred Platinum",
-                                    "Shangri-La Luxury Circle",
-                                    "Tablet Plus",
-                                    "Virtuoso",
-                                ].map((label) => (
-                                    <CheckboxWithLabel
-                                        key={label}
-                                        label={label}
-                                        checked={reservationTypes.includes(label)}
-                                        onChange={(checked) => {
-                                            if (checked) {
-                                                setReservationTypes([...reservationTypes, label])
-                                            } else {
-                                                setReservationTypes(reservationTypes.filter((r) => r !== label))
-                                            }
-                                        }}
-                                    />
-                                ))} */}
-                                {reservationTypes.map(label => (
-                                    <CheckboxWithLabel
-                                        key={label}
-                                        label={label}
-                                        checked={selectedReservationTypes.includes(label)}
-                                        onChange={checked => {
-                                            if (checked) {
-                                                setSelectedReservationTypes([...selectedReservationTypes, label])
-                                            } else {
-                                                setSelectedReservationTypes(
-                                                    selectedReservationTypes.filter(item => item !== label)
-                                                )
-                                            }
-                                        }}
-                                    />
-                                ))}
+                                {loading ? (
+                                    <p>loading</p>
+
+                                ) : (
+                                    <>
+                                        {reservationTypes.map(label => (
+                                            <CheckboxWithLabel
+                                                key={label}
+                                                label={label}
+                                                checked={selectedReservationTypes.includes(label)}
+                                                onChange={checked => {
+                                                    if (checked) {
+                                                        setSelectedReservationTypes([...selectedReservationTypes, label])
+                                                    } else {
+                                                        setSelectedReservationTypes(
+                                                            selectedReservationTypes.filter(item => item !== label)
+                                                        )
+                                                    }
+                                                }}
+                                            />
+                                        ))}
+                                    </>
+                                )}
                             </div>
 
                         </div>
@@ -319,14 +362,24 @@ export default function SidebarFilters() {
                 </div>
 
                 <div className="flex-1 overflow-y-auto px-6 pb-6">
-                    {hotels.length > 0 ? (
-                        hotels.map((hotel, index) => (
-                            <HotelCard key={index} hotel={hotel} />
-                        ))
-                    ) : (
+                    {loading ? (
                         <p className="text-center text-muted-foreground mt-10">
-                            No hotels found matching filters.
+                            loading
                         </p>
+
+                    ) : (
+                        <>
+
+                            {hotels.length > 0 ? (
+                                hotels.map((hotel, index) => (
+                                    <HotelCard key={index} hotel={hotel} />
+                                ))
+                            ) : (
+                                <p className="text-center text-muted-foreground mt-10">
+                                    No hotels found matching filters.
+                                </p>
+                            )}
+                        </>
                     )}
                 </div>
             </main>
