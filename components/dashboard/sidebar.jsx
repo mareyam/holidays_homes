@@ -103,7 +103,6 @@ export default function SidebarFilters() {
         }
 
         fetchHotels()
-        return () => clearTimeout(timeout)
     }, [priceRange, totalPrice, hotelName, location, reservationTypes, paymentType, refundType, destination, date])
 
     return (
